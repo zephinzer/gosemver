@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type UtilsTestSuite struct {
+type GitLoaderTestSuite struct {
 	suite.Suite
 }
 
-func TestUtils(t *testing.T) {
-	suite.Run(t, new(UtilsTestSuite))
+func TestGitLoader(t *testing.T) {
+	suite.Run(t, new(GitLoaderTestSuite))
 }

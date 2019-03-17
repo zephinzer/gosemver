@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,184 @@ func TestSemver(t *testing.T) {
 
 func (s *SemverTestSuite) SetupTest() {
 	s.semver = &Semver{1, 2, 3, "label"}
+}
+
+func (s *SemverTestSuite) TestBySemver_major() {
+	semvers := []ISemver{
+		&Semver{10, 0, 0, ""},
+		&Semver{2, 0, 0, ""},
+		&Semver{1, 0, 0, ""},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{1, 0, 0, ""},
+		&Semver{2, 0, 0, ""},
+		&Semver{10, 0, 0, ""},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_minor() {
+	semvers := []ISemver{
+		&Semver{0, 10, 0, ""},
+		&Semver{0, 2, 0, ""},
+		&Semver{0, 1, 0, ""},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 1, 0, ""},
+		&Semver{0, 2, 0, ""},
+		&Semver{0, 10, 0, ""},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_patch() {
+	semvers := []ISemver{
+		&Semver{0, 0, 10, ""},
+		&Semver{0, 0, 2, ""},
+		&Semver{0, 0, 1, ""},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 1, ""},
+		&Semver{0, 0, 2, ""},
+		&Semver{0, 0, 10, ""},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_labelString() {
+	semvers := []ISemver{
+		&Semver{0, 0, 0, "rc"},
+		&Semver{0, 0, 0, "beta"},
+		&Semver{0, 0, 0, "alpha"},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 0, "alpha"},
+		&Semver{0, 0, 0, "beta"},
+		&Semver{0, 0, 0, "rc"},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_labelInt() {
+	semvers := []ISemver{
+		&Semver{0, 0, 0, "rc.10"},
+		&Semver{0, 0, 0, "rc.2"},
+		&Semver{0, 0, 0, "rc.1"},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 0, "rc.1"},
+		&Semver{0, 0, 0, "rc.2"},
+		&Semver{0, 0, 0, "rc.10"},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_labelIntStringMix() {
+	semvers := []ISemver{
+		&Semver{0, 0, 0, "rc"},
+		&Semver{0, 0, 0, "rc.42"},
+		&Semver{0, 0, 0, "rc.1"},
+		&Semver{0, 0, 0, "beta.44"},
+		&Semver{0, 0, 0, "alpha"},
+		&Semver{0, 0, 0, "alpha.43"},
+		&Semver{0, 0, 0, "beta"},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 0, "alpha.43"},
+		&Semver{0, 0, 0, "alpha"},
+		&Semver{0, 0, 0, "beta.44"},
+		&Semver{0, 0, 0, "beta"},
+		&Semver{0, 0, 0, "rc.1"},
+		&Semver{0, 0, 0, "rc.42"},
+		&Semver{0, 0, 0, "rc"},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_labelIntStringMix_multiSegment() {
+	semvers := []ISemver{
+		&Semver{0, 0, 0, "a"},
+		&Semver{0, 0, 0, "a.b.c.d"},
+		&Semver{0, 0, 0, "a.b"},
+		&Semver{0, 0, 0, ""},
+		&Semver{0, 0, 0, "a.b.c"},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 0, "a.b.c.d"},
+		&Semver{0, 0, 0, "a.b.c"},
+		&Semver{0, 0, 0, "a.b"},
+		&Semver{0, 0, 0, "a"},
+		&Semver{0, 0, 0, ""},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestBySemver_withDuplicates() {
+	semvers := []ISemver{
+		&Semver{0, 0, 10, ""},
+		&Semver{0, 0, 1, ""},
+		&Semver{0, 0, 1, ""},
+		&Semver{10, 0, 1, ""},
+		&Semver{1, 10, 1, ""},
+		&Semver{1, 1, 10, ""},
+		&Semver{1, 1, 10, ""},
+		&Semver{1, 1, 1, ""},
+	}
+	sort.Stable(BySemver(semvers))
+	assert.Equal(s.T(), []ISemver{
+		&Semver{0, 0, 1, ""},
+		&Semver{0, 0, 1, ""},
+		&Semver{0, 0, 10, ""},
+		&Semver{1, 1, 1, ""},
+		&Semver{1, 1, 10, ""},
+		&Semver{1, 1, 10, ""},
+		&Semver{1, 10, 1, ""},
+		&Semver{10, 0, 1, ""},
+	}, semvers)
+}
+
+func (s *SemverTestSuite) TestNew() {
+	semver := New(1, 2, 3, "new.4")
+	assert.Equal(s.T(), 1, semver.GetMajorInt())
+	assert.Equal(s.T(), 2, semver.GetMinorInt())
+	assert.Equal(s.T(), 3, semver.GetPatchInt())
+	assert.Equal(s.T(), "new", semver.GetLabelString())
+	assert.Equal(s.T(), 4, semver.GetLabelInt())
+}
+
+func (s *SemverTestSuite) TestNewFrom() {
+	semver := NewFrom(func() (int, int, int, string, error) {
+		return 5, 6, 7, "newFrom.8", nil
+	})
+	assert.Equal(s.T(), 5, semver.GetMajorInt())
+	assert.Equal(s.T(), 6, semver.GetMinorInt())
+	assert.Equal(s.T(), 7, semver.GetPatchInt())
+	assert.Equal(s.T(), "newFrom", semver.GetLabelString())
+	assert.Equal(s.T(), 8, semver.GetLabelInt())
+}
+
+func (s *SemverTestSuite) TestSort() {
+	semvers := []ISemver{
+		&Semver{1, 0, 0, "alpha.1"},
+		&Semver{1, 0, 0, "beta"},
+		&Semver{1, 0, 0, "rc.1"},
+		&Semver{1, 0, 0, "rc.2"},
+		&Semver{1, 0, 0, "rc"},
+		&Semver{1, 1, 1, ""},
+		&Semver{1, 1, 1, "beta.1"},
+		&Semver{2, 10, 0, ""},
+	}
+	sortedSemvers := Sort(semvers)
+	assert.Equal(s.T(), []ISemver{
+		&Semver{1, 0, 0, "alpha.1"},
+		&Semver{1, 0, 0, "beta"},
+		&Semver{1, 0, 0, "rc.1"},
+		&Semver{1, 0, 0, "rc.2"},
+		&Semver{1, 0, 0, "rc"},
+		&Semver{1, 1, 1, "beta.1"},
+		&Semver{1, 1, 1, ""},
+		&Semver{2, 10, 0, ""},
+	}, sortedSemvers)
 }
 
 func (s *SemverTestSuite) TestBumpMajor() {
@@ -73,24 +252,47 @@ func (s *SemverTestSuite) TestGetMajorInt() {
 	assert.Equal(s.T(), 1, s.semver.GetMajorInt())
 }
 
-func (s *SemverTestSuite) TestGetMajorString() {
-	assert.Equal(s.T(), "1", s.semver.GetMajorString())
-}
-
 func (s *SemverTestSuite) TestGetMinorInt() {
 	assert.Equal(s.T(), 2, s.semver.GetMinorInt())
-}
-
-func (s *SemverTestSuite) TestGetMinorString() {
-	assert.Equal(s.T(), "2", s.semver.GetMinorString())
 }
 
 func (s *SemverTestSuite) TestGetPatchInt() {
 	assert.Equal(s.T(), 3, s.semver.GetPatchInt())
 }
 
-func (s *SemverTestSuite) TestGetPatchString() {
-	assert.Equal(s.T(), "3", s.semver.GetPatchString())
+func (s *SemverTestSuite) TestGetLabelInt() {
+	s.semver.Load(func() (int, int, int, string, error) {
+		return 1, 2, 3, "label.4", nil
+	})
+	assert.Equal(s.T(), 4, s.semver.GetLabelInt())
+}
+
+func (s *SemverTestSuite) TestGetLabelString_oneDelimiter() {
+	s.semver.Load(func() (int, int, int, string, error) {
+		return 1, 2, 3, "label.4", nil
+	})
+	assert.Equal(s.T(), "label", s.semver.GetLabelString())
+}
+
+func (s *SemverTestSuite) TestGetLabelString_noNumber() {
+	s.semver.Load(func() (int, int, int, string, error) {
+		return 1, 2, 3, "label", nil
+	})
+	assert.Equal(s.T(), "label", s.semver.GetLabelString())
+}
+
+func (s *SemverTestSuite) TestGetLabelString_multiDelimiter() {
+	s.semver.Load(func() (int, int, int, string, error) {
+		return 1, 2, 3, "label.another.label.4", nil
+	})
+	assert.Equal(s.T(), "label.another.label", s.semver.GetLabelString())
+}
+
+func (s *SemverTestSuite) TestGetLabelString_multiDelimiter_noNumber() {
+	s.semver.Load(func() (int, int, int, string, error) {
+		return 1, 2, 3, "label.another.label", nil
+	})
+	assert.Equal(s.T(), "label.another.label", s.semver.GetLabelString())
 }
 
 func (s *SemverTestSuite) TestGetLabel() {
@@ -108,6 +310,7 @@ func (s *SemverTestSuite) TestLoad() {
 	assert.Equal(s.T(), 4, s.semver.GetMajorInt())
 	assert.Equal(s.T(), 5, s.semver.GetMinorInt())
 	assert.Equal(s.T(), 6, s.semver.GetPatchInt())
+	assert.Equal(s.T(), 42, s.semver.GetLabelInt())
 	assert.Equal(s.T(), "label.42", s.semver.GetLabel())
 }
 

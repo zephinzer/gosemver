@@ -10,16 +10,22 @@ func main() {
 	semver := &Semver{}
 	config := InitialiseConfiguration()
 	if config.Use == "git" {
-		semver.Load(GitLoader)
+		fmt.Println("using  : git")
+		semver.Load(NewGitLoader())
+		fmt.Println("latest :", semver)
 	}
 	if config.BumpMajor {
-		fmt.Println("bump major!")
+		semver.BumpMajor()
+		fmt.Println("next   :", semver)
 	} else if config.BumpMinor {
-		fmt.Println("bump minor!")
+		semver.BumpMinor()
+		fmt.Println("next   :", semver)
 	} else if config.BumpPatch {
-		fmt.Println("bump patch!")
+		semver.BumpPatch()
+		fmt.Println("next   :", semver)
 	} else if len(config.BumpLabel) > 0 {
-		fmt.Println("bump label!")
+		semver.BumpLabel(config.BumpLabel)
+		fmt.Println("next   :", semver)
 	} else {
 		fmt.Println("?")
 		os.Exit(1)

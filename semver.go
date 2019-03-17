@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -13,14 +15,55 @@ type ISemver interface {
 	BumpPatch()
 	BumpLabel(string)
 	GetMajorInt() int
-	GetMajorString() string
 	GetMinorInt() int
-	GetMinorString() string
 	GetPatchInt() int
-	GetPatchString() string
 	GetLabel() string
+	GetLabelInt() int
+	GetLabelString() string
+	GetLabelPower() int
 	Load(SemverLoader)
 	String() string
+}
+
+// BySemver is for sorting a slice of Semvers
+type BySemver []ISemver
+
+// Len implements the required interface for the `sort` package that returns
+// the total length of the slice
+func (bySemver BySemver) Len() int {
+	return len(bySemver)
+}
+
+// Swap implements the required interface for the `sort` package that swaps
+// two members of a slice
+func (bySemver BySemver) Swap(i, j int) {
+	bySemver[i], bySemver[j] = bySemver[j], bySemver[i]
+}
+
+// Less implements the required interface for the `sort` package that returns
+// true if the element at `i` is less than the element at `j`
+func (bySemver BySemver) Less(i, j int) bool {
+	return bySemver[i].GetMajorInt() < bySemver[j].GetMajorInt() ||
+		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
+			bySemver[i].GetMinorInt() < bySemver[j].GetMinorInt()) ||
+		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
+			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
+			bySemver[i].GetPatchInt() < bySemver[j].GetPatchInt()) ||
+		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
+			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
+			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
+			bySemver[i].GetLabelPower() > bySemver[j].GetLabelPower()) ||
+		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
+			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
+			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
+			bySemver[i].GetLabelPower() >= bySemver[j].GetLabelPower() &&
+			strings.Compare(bySemver[i].GetLabelString(), bySemver[j].GetLabelString()) < 0) ||
+		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
+			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
+			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
+			bySemver[i].GetLabelPower() >= bySemver[j].GetLabelPower() &&
+			strings.Compare(bySemver[i].GetLabelString(), bySemver[j].GetLabelString()) <= 0 &&
+			bySemver[i].GetLabelInt() < bySemver[j].GetLabelInt())
 }
 
 // SemverLoader should load a Semver value from an arbitrary source
@@ -36,6 +79,12 @@ func NewFrom(loader SemverLoader) *Semver {
 	semver := &Semver{}
 	semver.Load(loader)
 	return semver
+}
+
+// Sort is a convenience function for sorting semvers
+func Sort(semvers []ISemver) []ISemver {
+	sort.Stable(BySemver(semvers))
+	return semvers
 }
 
 // Semver holds the data structure for a semantic versioning model
@@ -100,19 +149,9 @@ func (semver *Semver) GetMajorInt() int {
 	return semver.major
 }
 
-// GetMajorString retrieves the major version number as a string
-func (semver *Semver) GetMajorString() string {
-	return strconv.Itoa(semver.major)
-}
-
 // GetMinorInt retrieves the minor version number
 func (semver *Semver) GetMinorInt() int {
 	return semver.minor
-}
-
-// GetMinorString retrieves the minor version number as a string
-func (semver *Semver) GetMinorString() string {
-	return strconv.Itoa(semver.minor)
 }
 
 // GetPatchInt retrieves the patch version number
@@ -120,16 +159,59 @@ func (semver *Semver) GetPatchInt() int {
 	return semver.patch
 }
 
-// GetPatchString retrieves the patch version number as a string
-func (semver *Semver) GetPatchString() string {
-	return strconv.Itoa(semver.patch)
-}
-
-// GetLabel retrieves the label section
+// GetLabel retrieves the entire label as-is
 func (semver *Semver) GetLabel() string {
 	return semver.label
 }
 
+// GetLabelInt retrieves the label version number. If there is no version number,
+// it is taken that the label is the final version of the label series and is
+// assigned a maximum integer value for sorting purposes
+func (semver *Semver) GetLabelInt() int {
+	semverSections := strings.Split(semver.label, ".")
+	if len(semverSections) < 2 {
+		return math.MaxInt32
+	} else {
+		semverSectionsLastElement := semverSections[len(semverSections)-1]
+		if labelVersion, err := strconv.Atoi(semverSectionsLastElement); err != nil {
+			return math.MaxInt32
+		} else {
+			return labelVersion
+		}
+	}
+}
+
+// GetLabelString retrieves the string section of the label value
+func (semver *Semver) GetLabelString() string {
+	semverSections := strings.Split(semver.label, ".")
+	if len(semverSections) == 0 {
+		return ""
+	} else if len(semverSections) == 1 {
+		return semverSections[0]
+	} else {
+		semverSectionsLastElement := semverSections[len(semverSections)-1]
+		if _, err := strconv.Atoi(semverSectionsLastElement); err != nil {
+			return semver.label
+		} else {
+			return strings.Join(semverSections[:len(semverSections)-1], ".")
+		}
+	}
+}
+
+// GetLabelPower retrieves the power of the label - a lower power indicates
+// higher order
+func (semver *Semver) GetLabelPower() int {
+	labelString := semver.GetLabelString()
+	labelSections := strings.Split(labelString, ".")
+	labelPower := len(labelSections)
+	if labelPower == 1 && len(labelString) == 0 {
+		labelPower = 0
+	}
+	return labelPower
+}
+
+// Load loads the Semver struct with values from a loader function implementing
+// the SemverLoader type
 func (semver *Semver) Load(from SemverLoader) {
 	major, minor, patch, label, err := from()
 	if err != nil {
