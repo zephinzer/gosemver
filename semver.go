@@ -3,96 +3,38 @@ package main
 import (
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 )
 
 // ISemver defines an interface for using Semver
 type ISemver interface {
+	BumpLabel(string)
 	BumpMajor()
 	BumpMinor()
 	BumpPatch()
-	BumpLabel(string)
-	GetMajorInt() int
-	GetMinorInt() int
-	GetPatchInt() int
 	GetLabel() string
 	GetLabelInt() int
 	GetLabelString() string
 	GetLabelPower() int
-	Load(SemverLoader)
+	GetMajorInt() int
+	GetMinorInt() int
+	GetPatchInt() int
+	GetPrefix() string
+	Load(SemverLoader) error
 	String() string
 }
 
-// BySemver is for sorting a slice of Semvers
-type BySemver []ISemver
-
-// Len implements the required interface for the `sort` package that returns
-// the total length of the slice
-func (bySemver BySemver) Len() int {
-	return len(bySemver)
-}
-
-// Swap implements the required interface for the `sort` package that swaps
-// two members of a slice
-func (bySemver BySemver) Swap(i, j int) {
-	bySemver[i], bySemver[j] = bySemver[j], bySemver[i]
-}
-
-// Less implements the required interface for the `sort` package that returns
-// true if the element at `i` is less than the element at `j`
-func (bySemver BySemver) Less(i, j int) bool {
-	return bySemver[i].GetMajorInt() < bySemver[j].GetMajorInt() ||
-		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
-			bySemver[i].GetMinorInt() < bySemver[j].GetMinorInt()) ||
-		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
-			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
-			bySemver[i].GetPatchInt() < bySemver[j].GetPatchInt()) ||
-		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
-			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
-			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
-			bySemver[i].GetLabelPower() > bySemver[j].GetLabelPower()) ||
-		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
-			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
-			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
-			bySemver[i].GetLabelPower() >= bySemver[j].GetLabelPower() &&
-			strings.Compare(bySemver[i].GetLabelString(), bySemver[j].GetLabelString()) < 0) ||
-		(bySemver[i].GetMajorInt() <= bySemver[j].GetMajorInt() &&
-			bySemver[i].GetMinorInt() <= bySemver[j].GetMinorInt() &&
-			bySemver[i].GetPatchInt() <= bySemver[j].GetPatchInt() &&
-			bySemver[i].GetLabelPower() >= bySemver[j].GetLabelPower() &&
-			strings.Compare(bySemver[i].GetLabelString(), bySemver[j].GetLabelString()) <= 0 &&
-			bySemver[i].GetLabelInt() < bySemver[j].GetLabelInt())
-}
-
 // SemverLoader should load a Semver value from an arbitrary source
-type SemverLoader func() (int, int, int, string, error)
-
-// New creates an instance of Semver from scratch
-func New(major int, minor int, patch int, label string) *Semver {
-	return &Semver{major, minor, patch, label}
-}
-
-// NewFrom creates an instance of Semver given a SemverLoader
-func NewFrom(loader SemverLoader) *Semver {
-	semver := &Semver{}
-	semver.Load(loader)
-	return semver
-}
-
-// Sort is a convenience function for sorting semvers
-func Sort(semvers []ISemver) []ISemver {
-	sort.Stable(BySemver(semvers))
-	return semvers
-}
+type SemverLoader func() (int, int, int, string, string, error)
 
 // Semver holds the data structure for a semantic versioning model
 type Semver struct {
-	major int
-	minor int
-	patch int
-	label string
+	major  int
+	minor  int
+	patch  int
+	label  string
+	prefix string
 }
 
 // BumpMajor adds 1 to the major version and resets the minor and patch version to 0
@@ -210,21 +152,29 @@ func (semver *Semver) GetLabelPower() int {
 	return labelPower
 }
 
+// GetPrefix retrieves the prefix of the semver version
+func (semver *Semver) GetPrefix() string {
+	return semver.prefix
+}
+
 // Load loads the Semver struct with values from a loader function implementing
 // the SemverLoader type
-func (semver *Semver) Load(from SemverLoader) {
-	major, minor, patch, label, err := from()
+func (semver *Semver) Load(from SemverLoader) error {
+	major, minor, patch, label, prefix, err := from()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	semver.major = major
 	semver.minor = minor
 	semver.patch = patch
 	semver.label = label
+	semver.prefix = prefix
+	return nil
 }
 
+// String converts the Semver struct into its string representation
 func (semver *Semver) String() string {
-	version := fmt.Sprintf("%v.%v.%v", semver.major, semver.minor, semver.patch)
+	version := fmt.Sprintf("%s%v.%v.%v", semver.prefix, semver.major, semver.minor, semver.patch)
 	if len(semver.label) > 0 {
 		version = fmt.Sprintf("%s-%s", version, semver.label)
 	}

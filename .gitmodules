@@ -1,0 +1,3 @@
+[submodule "generators/versioning"]
+	path = generators/versioning
+	url = git@github.com:usvc/go-generate-version.git
