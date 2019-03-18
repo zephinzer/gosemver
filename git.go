@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-var GitAllTags = []string{"tag", "--list"}
-var GitMostRecentTag = []string{"describe", "--tags", "--abbrev=0"}
-
 type GitLoader struct{}
 
 func (gitLoader *GitLoader) Load(mode string, prefix ...string) SemverLoader {
@@ -57,7 +54,7 @@ func (gitLoader *GitLoader) getAllTags(prefix ...string) []string {
 // gitTagList retrieves all git tags
 func gitTagList() string {
 	var allTagsRawOutput bytes.Buffer
-	getVersion := exec.Command("git", GitAllTags...)
+	getVersion := exec.Command("git", "tag", "--list")
 	getVersion.Stdout = &allTagsRawOutput
 	getVersion.Stderr = &allTagsRawOutput
 	getVersion.Run()
@@ -67,7 +64,7 @@ func gitTagList() string {
 // gitDescribeTag retrieves the most recent tag
 func gitDescribeTag() string {
 	var versionOutput bytes.Buffer
-	getVersion := exec.Command("git", GitMostRecentTag...)
+	getVersion := exec.Command("git", "describe", "--tags", "--abbrev=0")
 	getVersion.Stdout = &versionOutput
 	getVersion.Stderr = &versionOutput
 	getVersion.Run()
@@ -87,6 +84,6 @@ func gitTag(tag string) string {
 // verifyGitExists panics if Git is not found
 func verifyGitExists() {
 	if _, err := exec.LookPath("git"); err != nil {
-		panic(err)
+		panic("the git executable could not be found/is not in your path")
 	}
 }

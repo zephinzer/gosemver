@@ -35,6 +35,12 @@ func handleDefault(c *cli.Context) error {
 }
 
 func handleGet(c *cli.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+			os.Exit(1)
+		}
+	}()
 	get := strings.ToLower(c.Args().First())
 	using := strings.ToLower(c.String("use"))
 	prefix := strings.ToLower(c.String("prefix"))
