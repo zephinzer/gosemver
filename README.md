@@ -8,16 +8,20 @@
 
 ### Bump Patch
 
-`gosemver --patch`
+`gosemver bump patch`
 
 ### Bump Minor
 
-`gosemver --minor`
+`gosemver bump minor`
 
 ### Bump Major
 
-`gosemver --major`
+`gosemver bump major`
 
 ### Bump Label
 
-`gosemver --label rc`
+`gosemver bump label`
+
+### Get
+
+`gosemver get`

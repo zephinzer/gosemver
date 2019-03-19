@@ -41,7 +41,7 @@ func commandSet() cli.Command {
 		Aliases:     []string{"s"},
 		ArgsUsage:   "<< version to set >>",
 		Description: "sets the version of the application under development to a specific version of your choice.",
-		Flags:       flags(flagUse),
+		Flags:       flags(flagUse, flagPrefix),
 		Name:        "set",
 	}
 }
