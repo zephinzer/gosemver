@@ -26,7 +26,7 @@ func flagMode() cli.Flag {
 		Usage:  "one of 'latest' or 'current': 'latest' gets the latest version, 'current' gets the most recently tagged semver version",
 		Name:   "mode, m",
 		Value:  "latest",
-		EnvVar: "PREFIX",
+		EnvVar: "MODE",
 	}
 }
 

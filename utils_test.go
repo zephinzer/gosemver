@@ -165,6 +165,13 @@ func (s *UtilsTestSuite) Test_isSemverLike_basicChecks_notSemverWithLabel() {
 	}
 }
 
+func (s *UtilsTestSuite) Test_removeEmptyStringsFromStringSlice() {
+	testSlice := []string{"", "1", "", "2", "3", ""}
+	outputSlice := removeEmptyStringsFromStringSlice(testSlice)
+	assert.Len(s.T(), outputSlice, 3)
+	assert.Equal(s.T(), "3", outputSlice[2])
+}
+
 func (s *UtilsTestSuite) Test_toSemver() {
 	testCases := map[string]ISemver{
 		"1.0.0":           New(1, 0, 0, ""),
@@ -181,4 +188,24 @@ func (s *UtilsTestSuite) Test_toSemver() {
 	for version, semver := range testCases {
 		assert.Equal(s.T(), semver, toSemver(version))
 	}
+}
+
+func (s *UtilsTestSuite) Test_trimAndNormalise() {
+	testStrings := []string{
+		"from windows\r\n",
+		"from unix\n",
+	}
+	var outputStrings []string
+	for _, testString := range testStrings {
+		outputStrings = append(outputStrings, trimAndNormalise(testString))
+	}
+	assert.Equal(
+		s.T(),
+		[]string{
+			"from windows",
+			"from unix",
+		},
+		outputStrings,
+	)
+
 }
