@@ -1,10 +1,26 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/urfave/cli"
 )
+
+// commandProvider defines a function that returns a command handler
+type commandProvider func() cli.Command
+
+// flagProvider defines a function that returns a flag handler
+type flagProvider func() cli.Flag
+
+// confirmationFalseCanonical defines the canonical rejection character
+const confirmationFalseCanonical = "n"
+
+// confirmationFalseCanonical defines the canonical acceptance character
+const confirmationTrueCanonical = "y"
 
 // semverIntSection for use in regexp building
 const semverIntSection = `(0|[1-9]{1}[\d]*){1}`
@@ -14,6 +30,62 @@ const semverIntSeperator = `\.`
 
 // semverLabelSection for use in regexp building
 const semverLabelSection = `(\-[a-zA-Z0-9\.\_]*)*`
+
+// confirmationFalse defines the alises of a rejection
+var confirmationFalse = []string{confirmationFalseCanonical, "no", "nope", "nah", "neh", "stop", "dont"}
+
+// confirmationTrue defines the alises of an acceptance
+var confirmationTrue = []string{confirmationTrueCanonical, "yes", "yupp", "yeah", "yea", "ok", "okay"}
+
+// commands returns a slice of commands that can be used by a
+// command orchestrator
+func commands(commands ...commandProvider) []cli.Command {
+	var commandChain []cli.Command
+	for _, command := range commands {
+		commandChain = append(commandChain, command())
+	}
+	return commandChain
+}
+
+func confirm(reader *bufio.Reader, question string, byDefault bool, retryText ...string) bool {
+	var options string
+	if byDefault {
+		options = fmt.Sprintf("%s/%s", strings.ToUpper(confirmationTrueCanonical), confirmationFalseCanonical)
+	} else {
+		options = fmt.Sprintf("%s/%s", confirmationTrueCanonical, strings.ToUpper(confirmationFalseCanonical))
+	}
+	fmt.Printf("%s [%s]: ", question, options)
+	userInput, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	if len(userInput) < 2 {
+		return byDefault
+	}
+	content := strings.Trim(
+		strings.ToLower(userInput),
+		" \r\n.,;",
+	)
+	confirmation := false
+	if sliceContainsString(confirmationTrue, content) {
+		confirmation = true
+	} else if sliceContainsString(confirmationFalse, content) {
+		confirmation = false
+	} else if len(retryText) > 0 {
+		fmt.Println(retryText[0])
+		confirmation = confirm(reader, question, byDefault, retryText...)
+	}
+	return confirmation
+}
+
+// flags returns a slice of flags that can be used in a command
+func flags(flags ...flagProvider) []cli.Flag {
+	var flagChain []cli.Flag
+	for _, flag := range flags {
+		flagChain = append(flagChain, flag())
+	}
+	return flagChain
+}
 
 // filterSemverLike retrieves all semver variants from the :versionList
 // parameter
@@ -60,6 +132,17 @@ func removeEmptyStringsFromStringSlice(slice []string) []string {
 		}
 	}
 	return finalSlice
+}
+
+// sliceContainsString returns true if the :slice contains the :search
+// string
+func sliceContainsString(slice []string, search string) bool {
+	for _, sliceItem := range slice {
+		if search == sliceItem {
+			return true
+		}
+	}
+	return false
 }
 
 // toSemver converts the string :from into the Semver struct

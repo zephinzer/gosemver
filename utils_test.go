@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,6 +50,31 @@ func (s *UtilsTestSuite) SetupTest() {
 		"v1",      // incomplete fail case #2
 		"ver-1",   // incomplete fail case #2
 	}
+}
+
+func (s *UtilsTestSuite) Test_confirm_withReply() {
+	assert.True(s.T(), confirm(bufio.NewReader(strings.NewReader("y\n")), "hi", true))
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("n\n")), "hi", true))
+}
+
+func (s *UtilsTestSuite) Test_confirm_withWindowsReply() {
+	assert.True(s.T(), confirm(bufio.NewReader(strings.NewReader("y\r\n")), "hi", true))
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("n\r\n")), "hi", true))
+}
+
+func (s *UtilsTestSuite) Test_confirm_withWeirdReplyNoRetry() {
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("something\n")), "hi", true))
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("something\n")), "hi", true))
+}
+
+func (s *UtilsTestSuite) Test_confirm_withWeirdReplyAndRetry() {
+	assert.True(s.T(), confirm(bufio.NewReader(strings.NewReader("something\ny\n")), "hi", true, "retry please"))
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("something\nn\n")), "hi", true, "retry please"))
+}
+
+func (s *UtilsTestSuite) Test_confirm_withoutReply() {
+	assert.True(s.T(), confirm(bufio.NewReader(strings.NewReader("\n")), "hi", true))
+	assert.False(s.T(), confirm(bufio.NewReader(strings.NewReader("\n")), "hi", false))
 }
 
 func (s *UtilsTestSuite) Test_filterSemverLikeWithoutFilter() {
@@ -170,6 +197,16 @@ func (s *UtilsTestSuite) Test_removeEmptyStringsFromStringSlice() {
 	outputSlice := removeEmptyStringsFromStringSlice(testSlice)
 	assert.Len(s.T(), outputSlice, 3)
 	assert.Equal(s.T(), "3", outputSlice[2])
+}
+
+func (s *UtilsTestSuite) Test_sliceContainsString() {
+	testSlice := []string{"a", "b", "c"}
+	// test the happy path
+	assert.True(s.T(), sliceContainsString(testSlice, "a"))
+	// test the sad path
+	assert.False(s.T(), sliceContainsString(testSlice, "d"))
+	// test if duplicates might affect searching
+	assert.False(s.T(), sliceContainsString(testSlice, "aa"))
 }
 
 func (s *UtilsTestSuite) Test_toSemver() {

@@ -46,3 +46,10 @@ func (s *CLIFlagsTestSuite) Test_flagPrefix() {
 	assert.Equal(s.T(), "", flag.Value)
 	assert.Equal(s.T(), "PREFIX", flag.EnvVar)
 }
+
+func (s *CLIFlagsTestSuite) Test_flagYes() {
+	flag := cli.BoolFlag(flagYes().(cli.BoolFlag))
+	assert.NotNil(s.T(), flag.Usage)
+	assert.Equal(s.T(), "yes, y", flag.Name)
+	assert.Equal(s.T(), "YES", flag.EnvVar)
+}

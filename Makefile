@@ -1,4 +1,3 @@
-
 tags:
 	git tag dev0.0.0
 	git tag dev0.0.1
@@ -21,3 +20,5 @@ tags.get:
 	git tag --list
 tags.clean:
 	git tag --list | grep dev | xargs -I{} git tag -d {}
+test:
+	godev test

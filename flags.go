@@ -2,16 +2,6 @@ package main
 
 import "github.com/urfave/cli"
 
-type flagProvider func() cli.Flag
-
-func flags(flags ...flagProvider) []cli.Flag {
-	var flagChain []cli.Flag
-	for _, flag := range flags {
-		flagChain = append(flagChain, flag())
-	}
-	return flagChain
-}
-
 func flagUse() cli.Flag {
 	return cli.StringFlag{
 		Usage:  "currently it's only 'git'",
@@ -36,5 +26,13 @@ func flagPrefix() cli.Flag {
 		Name:   "prefix, p",
 		Value:  "",
 		EnvVar: "PREFIX",
+	}
+}
+
+func flagYes() cli.Flag {
+	return cli.BoolFlag{
+		Usage:  "specify this to say yes to any questions asked in interactive mode",
+		Name:   "yes, y",
+		EnvVar: "YES",
 	}
 }

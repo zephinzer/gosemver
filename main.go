@@ -19,7 +19,12 @@ func main() {
 func bootstrap(app *cli.App) {
 	app.Name = "gosemver"
 	app.Usage = "go forth and semver"
-	app.Commands = commands(commandBump, commandGet, commandSet, commandVersion)
+	app.Commands = commands(
+		getBumpCommand,
+		getGetCommand,
+		getSetCommand,
+		getVersionCommand,
+	)
 	app.Version = fmt.Sprintf("%s-%s", Version, Commit)
-	app.Action = handleDefault
+	app.Action = actionDefault
 }
